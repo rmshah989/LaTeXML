@@ -696,7 +696,7 @@ sub RefStepCounter {
   my ($type, $noreset) = @_;
   my $ctr = LookupMapping('counter_for_type', $type) || $type;
   StepCounter($ctr, $noreset);
-  maybeHighjackRefnum($ctr);
+  maybePreemptRefnum($ctr);
   my $iddef = $STATE->lookupDefinition(T_CS("\\the$ctr\@ID"));
   my $has_id = $iddef && ((!defined $iddef->getParameters) || ($iddef->getParameters->getNumArgs == 0));
 
@@ -725,13 +725,13 @@ sub RefStepCounter {
 # we MUST sniff out the label BEFORE we call RefStepCounter/RefStepID !!!!!
 # (see MaybePeekLabel below; and also MaybeNoteLabel for use within
 # captions & certain equation environments)
-# Assign a sub to LABEL_MAPPER: &sub($label,$counter,$dorefnum,$doid)
+# Assign a sub to LABEL_MAPPING_HOOK: &sub($label,$counter,$norefnum)
 # to return the desired refnum and id for a given object.
-sub maybeHighjackRefnum {
+sub maybePreemptRefnum {
   my ($ctr, $norefnum) = @_;
-  if (my $mapper = LookupValue('LABEL_MAPPER')) {
-    my $hj_refnum = T_CS('\_HIJACKED_REFNUM_' . $ctr);
-    my $hj_id     = T_CS('\_HIJACKED_ID_' . $ctr);
+  if (my $mapper = LookupValue('LABEL_MAPPING_HOOK')) {
+    my $hj_refnum = T_CS('\_PREEMPTED_REFNUM_' . $ctr);
+    my $hj_id     = T_CS('\_PREEMPTED_ID_' . $ctr);
     # First, restore the \the<ctr> and \the<ctr>@ID macros to defaults
     if (!$norefnum && LookupMeaning($hj_refnum)) {
       Let(T_CS('\the' . $ctr), $hj_refnum, 'global'); }
@@ -754,7 +754,7 @@ sub maybeHighjackRefnum {
 
 # Use to peek for FOLLOWING \label{...} to support label-derived refererence numbers
 sub MaybePeekLabel {
-  if (LookupValue('LABEL_MAPPER')) {
+  if (LookupValue('LABEL_MAPPING_HOOK')) {
     my $gullet = $STATE->getStomach->getGullet;
     my $peek   = $gullet->readNonSpace;
     if (Equals($peek, T_CS('\label'))) {
@@ -775,7 +775,7 @@ sub MaybePeekLabel {
 # if it hasn't already been peeked, and consumed.
 sub MaybeNoteLabel {
   my ($label) = @_;
-  if (LookupValue('LABEL_MAPPER')) {
+  if (LookupValue('LABEL_MAPPING_HOOK')) {
     $label = CleanLabel($label, '');
     my $processed = LookupValue('PROCESSED_LABEL');
     if (!$processed || ($processed ne $label)) {    # Only if not already processed
@@ -798,7 +798,7 @@ sub RefStepID {
   my $ctr   = LookupMapping('counter_for_type', $type) || $type;
   my $unctr = "UN$ctr";
   StepCounter($unctr);
-  maybeHighjackRefnum($ctr, 1);
+  maybePreemptRefnum($ctr, 1);
   DefMacroI(T_CS("\\\@$ctr\@ID"), undef,
     Tokens(T_OTHER('x'), Explode(LookupValue('\c@' . $unctr)->valueOf)),
     scope => 'global');

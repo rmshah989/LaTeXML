@@ -1985,7 +1985,7 @@ Tag('ltx:Math', afterOpen => sub { GenerateID(@_, 'm'); });
 # Although LaTeX itself doesn't provide such an environment,
 # many other packages & classes do, and they seem essentially equivalent.
 # They provide an environment to wrap around equations,
-# which highjack the equation counter to sub-number within the group.
+# which hijack the equation counter to sub-number within the group.
 DefConstructor('\lx@equationgroup@subnumbering@begin',
   "<ltx:equationgroup xml:id='#id'>#tags",
   afterDigest => sub {
